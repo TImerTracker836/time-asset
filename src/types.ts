@@ -27,6 +27,20 @@ export interface TimeEntry {
   createdAt: string
 }
 
+export interface PlanBlock {
+  id: string
+  title: string
+  categoryId: string
+  startTime: string   // "HH:mm"
+  endTime: string     // "HH:mm"
+  isCompleted: boolean
+}
+
+export interface DayPlan {
+  date: string        // "yyyy-MM-dd"
+  blocks: PlanBlock[]
+}
+
 export interface TimerState {
   isRunning: boolean
   categoryId: string | null

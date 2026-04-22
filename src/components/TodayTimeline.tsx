@@ -1,23 +1,29 @@
-import React, { useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
-import { Play, Plus, Trash2, ChevronDown } from 'lucide-react'
+import { AlertTriangle, Target, Check } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { TIME_TYPE_CONFIG } from '../types'
 
-// 今日时间轴组件
+const HOUR_HEIGHT = 60
+
+const timeToY = (timeStr: string) => {
+  const d = parseISO(timeStr)
+  return (d.getHours() + d.getMinutes() / 60) * HOUR_HEIGHT
+}
+
+const hmToY = (hm: string) => {
+  const [h, m] = hm.split(':').map(Number)
+  return (h + m / 60) * HOUR_HEIGHT
+}
+
 export function TodayTimeline({ date }: { date: string }) {
-  const { getEntriesByDate, getCategoryById } = useAppStore()
+  const {
+    getEntriesByDate, getCategoryById, getPlanByDate, getUnrecordedGaps,
+    togglePlanBlock, deletePlanBlock,
+  } = useAppStore()
+
   const entries = getEntriesByDate(date)
-
-  // 用于时间轴位置计算（0-24h，总高度=24*60px）
-  const HOUR_HEIGHT = 60 // px per hour
-
-  const timeToY = (timeStr: string) => {
-    const d = parseISO(timeStr)
-    return (d.getHours() + d.getMinutes() / 60) * HOUR_HEIGHT
-  }
-
+  const plan = getPlanByDate(date)
+  const gaps = getUnrecordedGaps(date)
   const hours = Array.from({ length: 25 }, (_, i) => i)
 
   return (
@@ -37,7 +43,61 @@ export function TodayTimeline({ date }: { date: string }) {
           </div>
         ))}
 
-        {/* 时间条目块 */}
+        {/* 计划块（半透明底色） */}
+        {plan?.blocks.map((block) => {
+          const cat = getCategoryById(block.categoryId)
+          const top = hmToY(block.startTime)
+          const [sh, sm] = block.startTime.split(':').map(Number)
+          const [eh, em] = block.endTime.split(':').map(Number)
+          const height = Math.max(((eh + em / 60) - (sh + sm / 60)) * HOUR_HEIGHT, 20)
+          return (
+            <div
+              key={`plan-${block.id}`}
+              className="absolute left-12 right-2 rounded-md overflow-hidden"
+              style={{
+                top: `${top}px`,
+                height: `${height}px`,
+                backgroundColor: `${cat?.color || '#6366f1'}08`,
+                borderLeft: `2px dashed ${cat?.color || '#6366f1'}66`,
+              }}
+            >
+              <div className={`flex items-center gap-1 px-2 py-1 h-full ${block.isCompleted ? 'opacity-40' : ''}`}>
+                <span className="text-sm">{cat?.icon}</span>
+                <span className="text-xs text-slate-400 truncate">{block.title}</span>
+                <span className="text-xs text-slate-600 shrink-0">{block.startTime}-{block.endTime}</span>
+                {block.isCompleted && <Check size={12} className="text-green-500 shrink-0 ml-auto" />}
+              </div>
+            </div>
+          )
+        })}
+
+        {/* 时间黑洞（未记录的空白段） */}
+        {gaps.map((gap, i) => {
+          const top = timeToY(gap.start)
+          const height = Math.max((gap.minutes / 60) * HOUR_HEIGHT, 20)
+          return (
+            <div
+              key={`gap-${i}`}
+              className="absolute left-12 right-2 rounded-md flex items-center gap-1 px-2"
+              style={{
+                top: `${top}px`,
+                height: `${height}px`,
+                backgroundColor: 'rgba(239,68,68,0.06)',
+                border: '1px dashed rgba(239,68,68,0.2)',
+              }}
+            >
+              <AlertTriangle size={12} className="text-red-500/40 shrink-0" />
+              <span className="text-xs text-red-400/50">
+                {gap.minutes >= 60
+                  ? `${Math.floor(gap.minutes / 60)}h${gap.minutes % 60}m`
+                  : `${gap.minutes}m`}
+                {' '}未记录
+              </span>
+            </div>
+          )
+        })}
+
+        {/* 实际记录块 */}
         {entries.map((entry) => {
           const cat = getCategoryById(entry.categoryId)
           const top = timeToY(entry.startTime)

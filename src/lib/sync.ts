@@ -1,9 +1,15 @@
 import { supabase } from '../lib/supabase'
 import type { Category, TimeEntry, DayPlan } from '../types'
 
+export function isCloudEnabled() {
+  return supabase !== null
+}
+
 // ── 云端数据拉取 ──────────────────────────────────────
 
 export async function fetchCloudData() {
+  if (!supabase) throw new Error('云服务未配置')
+
   const [catRes, entryRes, planRes] = await Promise.all([
     supabase.from('categories').select('*'),
     supabase.from('entries').select('*').order('created_at', { ascending: false }),
@@ -45,6 +51,7 @@ export async function fetchCloudData() {
 // ── 云端数据推送 ──────────────────────────────────────
 
 export async function pushCategory(cat: Category) {
+  if (!supabase) return
   const { error } = await supabase.from('categories').upsert({
     id: cat.id,
     name: cat.name,
@@ -56,10 +63,12 @@ export async function pushCategory(cat: Category) {
 }
 
 export async function deleteCategoryCloud(id: string) {
+  if (!supabase) return
   await supabase.from('categories').delete().eq('id', id)
 }
 
 export async function pushEntry(entry: TimeEntry) {
+  if (!supabase) return
   const { error } = await supabase.from('entries').upsert({
     id: entry.id,
     title: entry.title,
@@ -75,10 +84,12 @@ export async function pushEntry(entry: TimeEntry) {
 }
 
 export async function deleteEntryCloud(id: string) {
+  if (!supabase) return
   await supabase.from('entries').delete().eq('id', id)
 }
 
 export async function pushPlan(plan: DayPlan) {
+  if (!supabase) return
   const { data: existing } = await supabase.from('plans').select('id').eq('date', plan.date).single()
   if (existing) {
     await supabase.from('plans').update({ blocks: plan.blocks }).eq('id', existing.id)
@@ -88,5 +99,6 @@ export async function pushPlan(plan: DayPlan) {
 }
 
 export async function deletePlanCloud(date: string) {
+  if (!supabase) return
   await supabase.from('plans').delete().eq('date', date)
 }

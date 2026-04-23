@@ -8,7 +8,7 @@ import { AuthPage } from './pages/AuthPage'
 import { TimerBar } from './components/TimerBar'
 import { useAppStore } from './store/useAppStore'
 import { useAuth } from './contexts/AuthContext'
-import { fetchCloudData } from './lib/sync'
+import { fetchCloudData, isCloudEnabled } from './lib/sync'
 import type { Theme } from './types'
 
 type Tab = 'today' | 'insights' | 'history' | 'settings'
@@ -86,8 +86,8 @@ export default function App() {
     )
   }
 
-  // 未登录 → 登录页
-  if (!user) {
+  // 未登录 且 云服务已配置 → 登录页
+  if (!user && isCloudEnabled()) {
     return <AuthPage />
   }
 
@@ -114,19 +114,21 @@ export default function App() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {/* 用户邮箱 */}
-          <span className="text-xs text-text-muted truncate max-w-[120px]" title={user.email || ''}>
-            {user.email}
-          </span>
-
-          {/* 登出 */}
-          <button
-            onClick={signOut}
-            className="p-2 rounded-lg hover:bg-bg-hover text-text-tertiary hover:text-danger transition-colors"
-            title="登出"
-          >
-            <LogOut size={16} />
-          </button>
+          {/* 用户信息（仅云同步模式） */}
+          {user && (
+            <>
+              <span className="text-xs text-text-muted truncate max-w-[120px]" title={user.email || ''}>
+                {user.email}
+              </span>
+              <button
+                onClick={signOut}
+                className="p-2 rounded-lg hover:bg-bg-hover text-text-tertiary hover:text-danger transition-colors"
+                title="登出"
+              >
+                <LogOut size={16} />
+              </button>
+            </>
+          )}
 
           {/* 主题切换 */}
           <div className="relative">

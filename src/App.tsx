@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { Clock, BarChart2, List, Settings, Sun, Moon, Monitor } from 'lucide-react'
+import { Clock, BarChart2, List, Settings, Sun, Moon, Monitor, Cloud, CloudOff, LogOut, RefreshCw } from 'lucide-react'
 import { TodayPage } from './pages/TodayPage'
 import { InsightsPage } from './pages/InsightsPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { AuthPage } from './pages/AuthPage'
 import { TimerBar } from './components/TimerBar'
 import { useAppStore } from './store/useAppStore'
+import { useAuth } from './contexts/AuthContext'
+import { fetchCloudData } from './lib/sync'
 import type { Theme } from './types'
 
 type Tab = 'today' | 'insights' | 'history' | 'settings'
@@ -30,8 +33,11 @@ function getEffectiveTheme(theme: Theme): 'dark' | 'light' {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('today')
-  const { timer, theme, setTheme } = useAppStore()
+  const { timer, theme, setTheme, synced, setSynced, loadCloudData } = useAppStore()
+  const { user, loading: authLoading, signOut } = useAuth()
   const [showThemeMenu, setShowThemeMenu] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncError, setSyncError] = useState('')
 
   // 应用主题 class 到 <html>
   useEffect(() => {
@@ -51,6 +57,40 @@ export default function App() {
     }
   }, [theme])
 
+  // 登录后自动从云端拉取数据
+  useEffect(() => {
+    if (user && !synced && !syncing) {
+      const doSync = async () => {
+        setSyncing(true)
+        setSyncError('')
+        try {
+          const data = await fetchCloudData()
+          loadCloudData(data.categories, data.entries, data.plans)
+        } catch (e: any) {
+          console.error('Cloud sync failed:', e)
+          setSyncError(e.message || '同步失败')
+        } finally {
+          setSyncing(false)
+        }
+      }
+      doSync()
+    }
+  }, [user, synced, syncing, loadCloudData, setSynced])
+
+  // 认证加载中
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+        <div className="text-text-muted text-sm">加载中...</div>
+      </div>
+    )
+  }
+
+  // 未登录 → 登录页
+  if (!user) {
+    return <AuthPage />
+  }
+
   const ThemeIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor
 
   return (
@@ -60,8 +100,34 @@ export default function App() {
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center text-sm text-white">⏱</div>
           <span className="font-bold text-lg tracking-tight">时间账本</span>
+          {/* 云同步状态指示 */}
+          {user && (
+            <div className="flex items-center gap-1" title={syncError || (synced ? '已同步' : syncing ? '同步中...' : '未同步')}>
+              {syncing ? (
+                <RefreshCw size={12} className="text-accent animate-spin" />
+              ) : syncError ? (
+                <CloudOff size={12} className="text-danger" />
+              ) : (
+                <Cloud size={12} className="text-success" />
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
+          {/* 用户邮箱 */}
+          <span className="text-xs text-text-muted truncate max-w-[120px]" title={user.email || ''}>
+            {user.email}
+          </span>
+
+          {/* 登出 */}
+          <button
+            onClick={signOut}
+            className="p-2 rounded-lg hover:bg-bg-hover text-text-tertiary hover:text-danger transition-colors"
+            title="登出"
+          >
+            <LogOut size={16} />
+          </button>
+
           {/* 主题切换 */}
           <div className="relative">
             <button
@@ -98,6 +164,19 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* 同步错误提示 */}
+      {syncError && (
+        <div className="px-4 py-2 bg-danger/10 border-b border-danger/20 flex items-center justify-between">
+          <span className="text-xs text-danger">{syncError}</span>
+          <button
+            onClick={() => { setSyncError(''); setSynced(false) }}
+            className="text-xs text-danger underline hover:no-underline"
+          >
+            重试
+          </button>
+        </div>
+      )}
 
       {/* 主内容区 */}
       <main className={`flex-1 overflow-hidden ${timer.isRunning ? 'pb-16' : ''}`}>

@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
 import type { Category, TimeEntry, TimerState, PlanBlock, DayPlan, Theme } from '../types'
 import { DEFAULT_CATEGORIES } from '../types'
+import * as sync from '../lib/sync'
 
 interface AppStore {
   // 数据
@@ -11,6 +12,11 @@ interface AppStore {
   timer: TimerState
   plans: DayPlan[]
   theme: Theme
+  synced: boolean // 是否已从云端同步过
+
+  // 同步
+  setSynced: (v: boolean) => void
+  loadCloudData: (categories: Category[], entries: TimeEntry[], plans: DayPlan[]) => void
 
   // 主题操作
   setTheme: (theme: Theme) => void
@@ -36,6 +42,7 @@ interface AppStore {
   addPlanBlock: (date: string, block: Omit<PlanBlock, 'id' | 'isCompleted'>) => void
   updatePlanBlock: (date: string, blockId: string, block: Partial<PlanBlock>) => void
   deletePlanBlock: (date: string, blockId: string) => void
+  deletePlan: (date: string) => void
   togglePlanBlock: (date: string, blockId: string) => void
 
   // 查询
@@ -60,38 +67,55 @@ export const useAppStore = create<AppStore>()(
       },
       plans: [],
       theme: 'dark',
+      synced: false,
+
+      // ── 同步 ────────────────────────────────────────
+      setSynced: (v) => set({ synced: v }),
+
+      loadCloudData: (categories, entries, plans) => set({ categories, entries, plans, synced: true }),
 
       // ── 主题 ────────────────────────────────────────
       setTheme: (theme) => set({ theme }),
 
       // ── 分类 ────────────────────────────────────────
-      addCategory: (cat) =>
-        set((s) => ({ categories: [...s.categories, { ...cat, id: uuidv4() }] })),
+      addCategory: (cat) => {
+        const newCat = { ...cat, id: uuidv4() }
+        set((s) => ({ categories: [...s.categories, newCat] }))
+        sync.pushCategory(newCat)
+      },
 
-      updateCategory: (id, cat) =>
+      updateCategory: (id, cat) => {
         set((s) => ({
           categories: s.categories.map((c) => (c.id === id ? { ...c, ...cat } : c)),
-        })),
+        }))
+        const updated = get().categories.find((c) => c.id === id)
+        if (updated) sync.pushCategory(updated)
+      },
 
-      deleteCategory: (id) =>
-        set((s) => ({ categories: s.categories.filter((c) => c.id !== id) })),
+      deleteCategory: (id) => {
+        set((s) => ({ categories: s.categories.filter((c) => c.id !== id) }))
+        sync.deleteCategoryCloud(id)
+      },
 
       // ── 时间条目 ────────────────────────────────────
-      addEntry: (entry) =>
-        set((s) => ({
-          entries: [
-            ...s.entries,
-            { ...entry, id: uuidv4(), createdAt: new Date().toISOString() },
-          ],
-        })),
+      addEntry: (entry) => {
+        const newEntry = { ...entry, id: uuidv4(), createdAt: new Date().toISOString() }
+        set((s) => ({ entries: [...s.entries, newEntry] }))
+        sync.pushEntry(newEntry)
+      },
 
-      updateEntry: (id, entry) =>
+      updateEntry: (id, entry) => {
         set((s) => ({
           entries: s.entries.map((e) => (e.id === id ? { ...e, ...entry } : e)),
-        })),
+        }))
+        const updated = get().entries.find((e) => e.id === id)
+        if (updated) sync.pushEntry(updated)
+      },
 
-      deleteEntry: (id) =>
-        set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
+      deleteEntry: (id) => {
+        set((s) => ({ entries: s.entries.filter((e) => e.id !== id) }))
+        sync.deleteEntryCloud(id)
+      },
 
       // ── 计时器 ──────────────────────────────────────
       startTimer: (categoryId) =>
@@ -139,45 +163,72 @@ export const useAppStore = create<AppStore>()(
       addPlanBlock: (date, block) =>
         set((s) => {
           const existing = s.plans.find((p) => p.date === date)
+          let updatedPlan: DayPlan
           if (existing) {
-            return {
-              plans: s.plans.map((p) =>
-                p.date === date
-                  ? { ...p, blocks: [...p.blocks, { ...block, id: uuidv4(), isCompleted: false }] }
-                  : p
-              ),
+            updatedPlan = {
+              ...existing,
+              blocks: [...existing.blocks, { ...block, id: uuidv4(), isCompleted: false }],
+            }
+          } else {
+            updatedPlan = {
+              date,
+              blocks: [{ ...block, id: uuidv4(), isCompleted: false }],
             }
           }
-          return {
-            plans: [...s.plans, { date, blocks: [{ ...block, id: uuidv4(), isCompleted: false }] }],
-          }
+          const newPlans = existing
+            ? s.plans.map((p) => (p.date === date ? updatedPlan : p))
+            : [...s.plans, updatedPlan]
+          // 异步推送云端
+          setTimeout(() => sync.pushPlan(updatedPlan), 0)
+          return { plans: newPlans }
         }),
 
       updatePlanBlock: (date, blockId, block) =>
         set((s) => ({
-          plans: s.plans.map((p) =>
-            p.date === date
-              ? { ...p, blocks: p.blocks.map((b) => (b.id === blockId ? { ...b, ...block } : b)) }
-              : p
-          ),
+          plans: s.plans.map((p) => {
+            if (p.date !== date) return p
+            const updated = {
+              ...p,
+              blocks: p.blocks.map((b) => (b.id === blockId ? { ...b, ...block } : b)),
+            }
+            setTimeout(() => sync.pushPlan(updated), 0)
+            return updated
+          }),
         })),
 
       deletePlanBlock: (date, blockId) =>
         set((s) => ({
-          plans: s.plans.map((p) =>
-            p.date === date
-              ? { ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }
-              : p
-          ),
+          plans: s.plans.map((p) => {
+            if (p.date !== date) return p
+            const updated = {
+              ...p,
+              blocks: p.blocks.filter((b) => b.id !== blockId),
+            }
+            if (updated.blocks.length === 0) {
+              setTimeout(() => sync.deletePlanCloud(date), 0)
+              return updated
+            }
+            setTimeout(() => sync.pushPlan(updated), 0)
+            return updated
+          }),
         })),
+
+      deletePlan: (date) => {
+        set((s) => ({ plans: s.plans.filter((p) => p.date !== date) }))
+        sync.deletePlanCloud(date)
+      },
 
       togglePlanBlock: (date, blockId) =>
         set((s) => ({
-          plans: s.plans.map((p) =>
-            p.date === date
-              ? { ...p, blocks: p.blocks.map((b) => (b.id === blockId ? { ...b, isCompleted: !b.isCompleted } : b)) }
-              : p
-          ),
+          plans: s.plans.map((p) => {
+            if (p.date !== date) return p
+            const updated = {
+              ...p,
+              blocks: p.blocks.map((b) => (b.id === blockId ? { ...b, isCompleted: !b.isCompleted } : b)),
+            }
+            setTimeout(() => sync.pushPlan(updated), 0)
+            return updated
+          }),
         })),
 
       // ── 查询 ────────────────────────────────────────
@@ -238,7 +289,13 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'time-asset-storage',
-      partialize: (s) => ({ categories: s.categories, entries: s.entries, plans: s.plans, theme: s.theme }),
+      partialize: (s) => ({
+        categories: s.categories,
+        entries: s.entries,
+        plans: s.plans,
+        theme: s.theme,
+        synced: s.synced,
+      }),
     }
   )
 )

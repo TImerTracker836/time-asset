@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Target, AlertTriangle, Check, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Target, AlertTriangle, Check, Trash2, Pencil } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import { TIME_TYPE_CONFIG, type TimeType } from '../types'
+import { TIME_TYPE_CONFIG, type TimeType, type PlanBlock } from '../types'
 import { TodayTimeline } from '../components/TodayTimeline'
 import { QuickRecord } from '../components/QuickRecord'
 import { AddPlanBlock } from '../components/AddPlanBlock'
@@ -12,6 +12,7 @@ export function TodayPage() {
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [showQuickRecord, setShowQuickRecord] = useState(false)
   const [showAddPlan, setShowAddPlan] = useState(false)
+  const [editingBlock, setEditingBlock] = useState<PlanBlock | null>(null)
   const {
     getEntriesByDate, getCategoryById, categories, startTimer, timer,
     getPlanByDate, togglePlanBlock, deletePlanBlock, getUnrecordedGaps,
@@ -187,12 +188,22 @@ export function TodayPage() {
                           </div>
                           <div className="text-xs text-text-muted">{block.startTime}-{block.endTime}</div>
                         </div>
-                        <button
-                          onClick={() => deletePlanBlock(currentDate, block.id)}
-                          className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger transition-all p-0.5"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
+                          <button
+                            onClick={() => setEditingBlock(block)}
+                            className="text-text-muted hover:text-accent p-0.5 transition-colors"
+                            title="编辑"
+                          >
+                            <Pencil size={11} />
+                          </button>
+                          <button
+                            onClick={() => deletePlanBlock(currentDate, block.id)}
+                            className="text-text-muted hover:text-danger p-0.5 transition-colors"
+                            title="删除"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
                       </div>
                     )
                   })}
@@ -228,6 +239,13 @@ export function TodayPage() {
 
       {showQuickRecord && <QuickRecord defaultDate={currentDate} onClose={() => setShowQuickRecord(false)} />}
       {showAddPlan && <AddPlanBlock date={currentDate} onClose={() => setShowAddPlan(false)} />}
+      {editingBlock && (
+        <AddPlanBlock
+          date={currentDate}
+          editBlock={editingBlock}
+          onClose={() => setEditingBlock(null)}
+        />
+      )}
     </div>
   )
 }

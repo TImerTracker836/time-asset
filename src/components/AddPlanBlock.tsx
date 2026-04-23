@@ -1,18 +1,22 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Pencil, Plus } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
+import type { PlanBlock } from '../types'
 
 interface AddPlanBlockProps {
   date: string
   onClose: () => void
+  editBlock?: PlanBlock   // 传入时为编辑模式
 }
 
-export function AddPlanBlock({ date, onClose }: AddPlanBlockProps) {
-  const { categories, addPlanBlock } = useAppStore()
-  const [title, setTitle] = useState('')
-  const [categoryId, setCategoryId] = useState(categories[0]?.id || '')
-  const [startTime, setStartTime] = useState('09:00')
-  const [endTime, setEndTime] = useState('11:00')
+export function AddPlanBlock({ date, onClose, editBlock }: AddPlanBlockProps) {
+  const { categories, addPlanBlock, updatePlanBlock } = useAppStore()
+  const isEdit = !!editBlock
+
+  const [title, setTitle] = useState(editBlock?.title || '')
+  const [categoryId, setCategoryId] = useState(editBlock?.categoryId || categories[0]?.id || '')
+  const [startTime, setStartTime] = useState(editBlock?.startTime || '09:00')
+  const [endTime, setEndTime] = useState(editBlock?.endTime || '11:00')
 
   const duration = (() => {
     const [sh, sm] = startTime.split(':').map(Number)
@@ -22,7 +26,11 @@ export function AddPlanBlock({ date, onClose }: AddPlanBlockProps) {
 
   const handleSave = () => {
     if (!title.trim() || !categoryId || duration <= 0) return
-    addPlanBlock(date, { title: title.trim(), categoryId, startTime, endTime })
+    if (isEdit && editBlock) {
+      updatePlanBlock(date, editBlock.id, { title: title.trim(), categoryId, startTime, endTime })
+    } else {
+      addPlanBlock(date, { title: title.trim(), categoryId, startTime, endTime })
+    }
     onClose()
   }
 
@@ -31,8 +39,8 @@ export function AddPlanBlock({ date, onClose }: AddPlanBlockProps) {
       <div className="bg-bg-card rounded-2xl w-full max-w-md shadow-[var(--shadow-modal)]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-secondary">
           <div className="flex items-center gap-2">
-            <span className="text-base">📋</span>
-            <h3 className="font-semibold">添加计划</h3>
+            <span className="text-base">{isEdit ? '✏️' : '📋'}</span>
+            <h3 className="font-semibold">{isEdit ? '编辑计划' : '添加计划'}</h3>
           </div>
           <button onClick={onClose} className="text-text-tertiary hover:text-text-primary transition-colors">
             <X size={20} />
@@ -98,9 +106,13 @@ export function AddPlanBlock({ date, onClose }: AddPlanBlockProps) {
             <div className="text-center text-sm">
               <span className="text-text-muted">计划时长：</span>
               <span className="font-mono font-bold text-accent">
-                {duration >= 60 ? `${Math.floor(duration / 60)}h${duration % 60}m` : `${duration}m`}
+                {duration >= 60 ? `${Math.floor(duration / 60)}h${duration % 60 > 0 ? `${duration % 60}m` : ''}` : `${duration}m`}
               </span>
             </div>
+          )}
+
+          {duration <= 0 && startTime && endTime && (
+            <div className="text-center text-xs text-danger">结束时间必须晚于开始时间</div>
           )}
         </div>
 
@@ -114,9 +126,9 @@ export function AddPlanBlock({ date, onClose }: AddPlanBlockProps) {
           <button
             onClick={handleSave}
             disabled={!title.trim() || !categoryId || duration <= 0}
-            className="flex-1 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-2.5 text-sm font-medium text-white transition-colors"
+            className="flex-1 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-2.5 text-sm font-medium text-white transition-colors flex items-center justify-center gap-1.5"
           >
-            添加计划
+            {isEdit ? <><Pencil size={14} />保存修改</> : <><Plus size={14} />添加计划</>}
           </button>
         </div>
       </div>

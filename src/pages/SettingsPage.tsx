@@ -43,22 +43,20 @@ export function SettingsPage() {
   }))
 
   const CategoryForm = () => (
-    <div className="bg-[#0f0f1a] rounded-xl p-4 space-y-3 border border-[#2a2a4a]">
-      {/* 名称 */}
+    <div className="bg-bg-tertiary rounded-xl p-4 space-y-3 border border-border-secondary">
       <div>
-        <label className="text-xs text-slate-400 mb-1 block">名称</label>
+        <label className="text-xs text-text-secondary mb-1 block">名称</label>
         <input
           autoFocus
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           placeholder="分类名称"
-          className="w-full bg-[#1a1a2e] border border-[#2a2a4a] rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"
+          className="w-full bg-bg-card border border-border-secondary rounded-lg px-3 py-2 text-sm outline-none focus:border-accent text-text-primary placeholder:text-text-muted"
         />
       </div>
 
-      {/* 类型 */}
       <div>
-        <label className="text-xs text-slate-400 mb-1 block">类型</label>
+        <label className="text-xs text-text-secondary mb-1 block">类型</label>
         <div className="flex gap-2">
           {(['invest', 'maintain', 'consume'] as TimeType[]).map((t) => {
             const cfg = TIME_TYPE_CONFIG[t]
@@ -70,7 +68,7 @@ export function SettingsPage() {
                 style={
                   form.type === t
                     ? { backgroundColor: cfg.color, color: 'white' }
-                    : { backgroundColor: `${cfg.color}22`, color: cfg.color }
+                    : { backgroundColor: cfg.bg, color: cfg.color }
                 }
               >
                 {cfg.label}
@@ -80,15 +78,14 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* 图标 */}
       <div>
-        <label className="text-xs text-slate-400 mb-1 block">图标</label>
+        <label className="text-xs text-text-secondary mb-1 block">图标</label>
         <div className="flex flex-wrap gap-1.5">
           {CATEGORY_ICONS.map((icon) => (
             <button
               key={icon}
               onClick={() => setForm((f) => ({ ...f, icon }))}
-              className={`text-xl p-1.5 rounded-lg transition-all ${form.icon === icon ? 'bg-indigo-600' : 'hover:bg-[#2a2a4a]'}`}
+              className={`text-xl p-1.5 rounded-lg transition-all ${form.icon === icon ? 'bg-accent' : 'hover:bg-bg-hover'}`}
             >
               {icon}
             </button>
@@ -96,9 +93,8 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* 颜色 */}
       <div>
-        <label className="text-xs text-slate-400 mb-1 block">颜色</label>
+        <label className="text-xs text-text-secondary mb-1 block">颜色</label>
         <div className="flex flex-wrap gap-2">
           {PALETTE.map((color) => (
             <button
@@ -118,14 +114,14 @@ export function SettingsPage() {
       <div className="flex gap-2 pt-1">
         <button
           onClick={() => { setEditId(null); setShowAdd(false) }}
-          className="flex-1 border border-[#2a2a4a] rounded-lg py-2 text-sm hover:border-slate-500 transition-colors"
+          className="flex-1 border border-border-secondary rounded-lg py-2 text-sm hover:border-text-tertiary transition-colors"
         >
           取消
         </button>
         <button
           onClick={handleSave}
           disabled={!form.name.trim()}
-          className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded-lg py-2 text-sm font-medium transition-colors"
+          className="flex-1 bg-accent hover:bg-accent-hover disabled:opacity-40 rounded-lg py-2 text-sm font-medium text-white transition-colors"
         >
           保存
         </button>
@@ -139,7 +135,7 @@ export function SettingsPage() {
         <h2 className="font-semibold">设置 · 分类管理</h2>
         <button
           onClick={() => { setShowAdd(true); setEditId(null) }}
-          className="flex items-center gap-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 text-sm bg-accent hover:bg-accent-hover text-white px-3 py-1.5 rounded-lg transition-colors"
         >
           <Plus size={14} />
           新增分类
@@ -155,7 +151,7 @@ export function SettingsPage() {
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.color }} />
               <span className="text-sm font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
-              <span className="text-xs text-slate-600">{cfg.desc}</span>
+              <span className="text-xs text-text-muted">{cfg.desc}</span>
             </div>
             <div className="space-y-1.5">
               {cats.map((cat) => (
@@ -163,25 +159,20 @@ export function SettingsPage() {
                   {editId === cat.id ? (
                     <CategoryForm />
                   ) : (
-                    <div className="flex items-center gap-3 bg-[#1a1a2e] rounded-xl px-3 py-2.5 group">
+                    <div className="flex items-center gap-3 bg-bg-card rounded-xl px-3 py-2.5 group shadow-[var(--shadow-card)]">
                       <span className="text-xl">{cat.icon}</span>
-                      <div
-                        className="w-3 h-3 rounded-full shrink-0"
-                        style={{ backgroundColor: cat.color }}
-                      />
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
                       <span className="flex-1 text-sm">{cat.name}</span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => startEdit(cat)}
-                          className="p-1.5 rounded-lg hover:bg-[#2a2a4a] text-slate-500 hover:text-white transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-bg-hover text-text-tertiary hover:text-text-primary transition-colors"
                         >
                           <Edit2 size={14} />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm(`确定删除「${cat.name}」分类？`)) deleteCategory(cat.id)
-                          }}
-                          className="p-1.5 rounded-lg hover:bg-red-900/30 text-slate-500 hover:text-red-400 transition-colors"
+                          onClick={() => { if (confirm(`确定删除「${cat.name}」分类？`)) deleteCategory(cat.id) }}
+                          className="p-1.5 rounded-lg hover:bg-danger/10 text-text-tertiary hover:text-danger transition-colors"
                         >
                           <Trash2 size={14} />
                         </button>

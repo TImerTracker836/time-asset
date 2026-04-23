@@ -1,25 +1,191 @@
 @import "tailwindcss";
 
-:root {
+/* ============================================================
+   主题色彩系统 — CSS 变量
+   ============================================================ */
+
+/* ── 暗色主题（默认） ─────────────────────────── */
+:root,
+.dark {
+  /* 基础背景 */
+  --bg-primary: #0f0f14;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: #0f0f1a;
+  --bg-card: #1a1a2e;
+  --bg-hover: #22224a;
+
+  /* 边框 */
+  --border-primary: #1e1e2e;
+  --border-secondary: #2a2a4a;
+  --border-tertiary: #3a3a5a;
+
+  /* 文字 */
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-muted: #475569;
+
+  /* 品牌色 */
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-bg: rgba(99, 102, 241, 0.15);
+
+  /* 时间类型色 */
   --color-invest: #6366f1;
+  --color-invest-bg: rgba(99, 102, 241, 0.15);
   --color-maintain: #22c55e;
+  --color-maintain-bg: rgba(34, 197, 94, 0.15);
   --color-consume: #f59e0b;
+  --color-consume-bg: rgba(245, 158, 11, 0.15);
+
+  /* 功能色 */
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #22c55e;
+  --color-info: #3b82f6;
+
+  /* 滚动条 */
+  --scrollbar-track: #1e1e2e;
+  --scrollbar-thumb: #3f3f5c;
+
+  /* 图表 tooltip */
+  --chart-tooltip-bg: #1a1a2e;
+  --chart-tooltip-border: #2a2a4a;
+
+  /* 弹窗遮罩 */
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* 阴影 */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-modal: 0 25px 50px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
 }
+
+/* ── 亮色主题 ─────────────────────────────────── */
+.light {
+  /* 基础背景 */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-hover: #f1f5f9;
+
+  /* 边框 */
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --border-tertiary: #94a3b8;
+
+  /* 文字 */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
+
+  /* 品牌色 */
+  --accent: #4f46e5;
+  --accent-hover: #6366f1;
+  --accent-bg: rgba(79, 70, 229, 0.1);
+
+  /* 时间类型色 */
+  --color-invest: #4f46e5;
+  --color-invest-bg: rgba(79, 70, 229, 0.08);
+  --color-maintain: #16a34a;
+  --color-maintain-bg: rgba(22, 163, 74, 0.08);
+  --color-consume: #d97706;
+  --color-consume-bg: rgba(217, 119, 6, 0.08);
+
+  /* 功能色 */
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-success: #16a34a;
+  --color-info: #2563eb;
+
+  /* 滚动条 */
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+
+  /* 图表 tooltip */
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e2e8f0;
+
+  /* 弹窗遮罩 */
+  --overlay: rgba(0, 0, 0, 0.3);
+
+  /* 阴影 */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 25px 50px rgba(0, 0, 0, 0.12);
+
+  color-scheme: light;
+}
+
+/* ============================================================
+   全局基础样式
+   ============================================================ */
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background-color: #0f0f14;
-  color: #e2e8f0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* 时间轴滚动条美化 */
+/* 主题切换过渡 */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* 滚动条 */
 ::-webkit-scrollbar {
   width: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #1e1e2e;
+  background: var(--scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: #3f3f5c;
+  background: var(--scrollbar-thumb);
   border-radius: 2px;
+}
+
+/* ============================================================
+   通用 Tailwind 主题扩展（CSS 变量引用）
+   ============================================================ */
+
+@theme inline {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-card: var(--bg-card);
+  --color-bg-hover: var(--bg-hover);
+
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-tertiary: var(--border-tertiary);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-muted: var(--text-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+
+  --color-invest: var(--color-invest);
+  --color-invest-bg: var(--color-invest-bg);
+  --color-maintain: var(--color-maintain);
+  --color-maintain-bg: var(--color-maintain-bg);
+  --color-consume: var(--color-consume);
+  --color-consume-bg: var(--color-consume-bg);
+
+  --color-danger: var(--color-danger);
+  --color-warning: var(--color-warning);
+  --color-success: var(--color-success);
+
+  --color-overlay: var(--overlay);
+  --color-chart-tooltip-bg: var(--chart-tooltip-bg);
+  --color-chart-tooltip-border: var(--chart-tooltip-border);
 }

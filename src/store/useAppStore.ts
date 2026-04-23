@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
-import type { Category, TimeEntry, TimerState, PlanBlock, DayPlan } from '../types'
+import type { Category, TimeEntry, TimerState, PlanBlock, DayPlan, Theme } from '../types'
 import { DEFAULT_CATEGORIES } from '../types'
 
 interface AppStore {
@@ -10,6 +10,10 @@ interface AppStore {
   entries: TimeEntry[]
   timer: TimerState
   plans: DayPlan[]
+  theme: Theme
+
+  // 主题操作
+  setTheme: (theme: Theme) => void
 
   // 分类操作
   addCategory: (cat: Omit<Category, 'id'>) => void
@@ -55,8 +59,12 @@ export const useAppStore = create<AppStore>()(
         elapsed: 0,
       },
       plans: [],
+      theme: 'dark',
 
-      // ── 分类 ──────────────────────────────────────────
+      // ── 主题 ────────────────────────────────────────
+      setTheme: (theme) => set({ theme }),
+
+      // ── 分类 ────────────────────────────────────────
       addCategory: (cat) =>
         set((s) => ({ categories: [...s.categories, { ...cat, id: uuidv4() }] })),
 
@@ -68,7 +76,7 @@ export const useAppStore = create<AppStore>()(
       deleteCategory: (id) =>
         set((s) => ({ categories: s.categories.filter((c) => c.id !== id) })),
 
-      // ── 时间条目 ──────────────────────────────────────
+      // ── 时间条目 ────────────────────────────────────
       addEntry: (entry) =>
         set((s) => ({
           entries: [
@@ -85,7 +93,7 @@ export const useAppStore = create<AppStore>()(
       deleteEntry: (id) =>
         set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
 
-      // ── 计时器 ────────────────────────────────────────
+      // ── 计时器 ──────────────────────────────────────
       startTimer: (categoryId) =>
         set({
           timer: {
@@ -125,7 +133,7 @@ export const useAppStore = create<AppStore>()(
           timer: { ...s.timer, elapsed: s.timer.elapsed + 1 },
         })),
 
-      // ── 日计划 ────────────────────────────────────────
+      // ── 日计划 ──────────────────────────────────────
       getPlanByDate: (date) => get().plans.find((p) => p.date === date),
 
       addPlanBlock: (date, block) =>
@@ -172,7 +180,7 @@ export const useAppStore = create<AppStore>()(
           ),
         })),
 
-      // ── 查询 ──────────────────────────────────────────
+      // ── 查询 ────────────────────────────────────────
       getEntriesByDate: (date) => {
         const { entries } = get()
         return entries.filter((e) => e.startTime.startsWith(date))
@@ -185,18 +193,16 @@ export const useAppStore = create<AppStore>()(
 
       getCategoryById: (id) => get().categories.find((c) => c.id === id),
 
-      // ── 时间黑洞检测 ─────────────────────────────────
+      // ── 时间黑洞检测 ───────────────────────────────
       getUnrecordedGaps: (date) => {
         const { entries } = get()
         const dayEntries = entries
           .filter((e) => e.startTime.startsWith(date))
           .sort((a, b) => a.startTime.localeCompare(b.startTime))
 
-        // 定义当天的范围：6:00 到次日 2:00（覆盖晚睡）
         const dayStart = new Date(`${date}T06:00:00`)
-        const dayEnd = new Date(`${date}T26:00:00`) // 等于次日2:00
+        const dayEnd = new Date(`${date}T26:00:00`)
 
-        // 如果是今天，上限是当前时间
         const now = new Date()
         const isToday = date === now.toISOString().substring(0, 10)
         const effectiveEnd = isToday ? Math.min(dayEnd.getTime(), now.getTime()) : dayEnd.getTime()
@@ -208,7 +214,7 @@ export const useAppStore = create<AppStore>()(
           const entryStart = new Date(entry.startTime).getTime()
           if (entryStart > cursor) {
             const gapMinutes = Math.round((entryStart - cursor) / 60000)
-            if (gapMinutes >= 15) { // 只显示 15 分钟以上的空白
+            if (gapMinutes >= 15) {
               gaps.push({
                 start: new Date(cursor).toISOString(),
                 end: new Date(entryStart).toISOString(),
@@ -219,7 +225,6 @@ export const useAppStore = create<AppStore>()(
           cursor = Math.max(cursor, new Date(entry.endTime).getTime())
         }
 
-        // 检查到最后一个条目/当前时间的空白
         if (effectiveEnd - cursor >= 15 * 60 * 1000) {
           gaps.push({
             start: new Date(cursor).toISOString(),
@@ -233,7 +238,7 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'time-asset-storage',
-      partialize: (s) => ({ categories: s.categories, entries: s.entries, plans: s.plans }),
+      partialize: (s) => ({ categories: s.categories, entries: s.entries, plans: s.plans, theme: s.theme }),
     }
   )
 )

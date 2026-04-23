@@ -2,6 +2,8 @@
 // 核心类型定义
 // ============================================================
 
+export type Theme = 'dark' | 'light' | 'system'
+
 export type TimeType = 'invest' | 'maintain' | 'consume'
 
 export interface Category {
@@ -62,15 +64,23 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'sleep',       name: '睡眠休息', type: 'maintain', color: '#22c55e', icon: '😴' },
   { id: 'meal',        name: '饮食',     type: 'maintain', color: '#84cc16', icon: '🍜' },
   { id: 'commute',     name: '通勤交通', type: 'maintain', color: '#a3e635', icon: '🚗' },
-  { id: 'chore',       name: '家务事务', type: 'maintain', color: '#4ade80', icon: '🏠' },
+  { id: 'chore',        name: '家务事务', type: 'maintain', color: '#4ade80', icon: '🏠' },
   // 消耗型
   { id: 'entertainment', name: '娱乐刷屏', type: 'consume', color: '#f59e0b', icon: '📱' },
   { id: 'social',      name: '社交闲聊', type: 'consume',  color: '#fb923c', icon: '💬' },
   { id: 'idle',        name: '发呆等待', type: 'consume',  color: '#ef4444', icon: '😶' },
 ]
 
+// 使用 CSS 变量，自动适配亮/暗主题
 export const TIME_TYPE_CONFIG: Record<TimeType, { label: string; color: string; bg: string; desc: string }> = {
-  invest:   { label: '投资型', color: '#6366f1', bg: 'rgba(99,102,241,0.15)',  desc: '增值·成长' },
-  maintain: { label: '维护型', color: '#22c55e', bg: 'rgba(34,197,94,0.15)',   desc: '必要·维持' },
-  consume:  { label: '消耗型', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', desc: '注意·警惕' },
+  invest:   { label: '投资型', color: 'var(--color-invest)',   bg: 'var(--color-invest-bg)',   desc: '增值·成长' },
+  maintain: { label: '维护型', color: 'var(--color-maintain)',  bg: 'var(--color-maintain-bg)',  desc: '必要·维持' },
+  consume:  { label: '消耗型', color: 'var(--color-consume)',   bg: 'var(--color-consume-bg)',   desc: '注意·警惕' },
+}
+
+// 用于 Recharts 等需要实际颜色值（不支持 CSS 变量）的场景
+export const CHART_COLORS = {
+  invest: '#6366f1',
+  maintain: '#22c55e',
+  consume: '#f59e0b',
 }
